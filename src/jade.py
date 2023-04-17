@@ -24,21 +24,54 @@ class Mutator():
         self.mutation = mutation
         self.line = line
         self.contents = contents
+
+    def mutate(self):
+        match self.mutation:
+            case Mutation.BINARY_OP:
+                self.binary_op()
+            case Mutation.UNARY_OP:
+                self.unary_op()
+            case Mutation.REQUIRE:
+                self.require()
+            case Mutation.ASSIGNMENT:
+                self.assignment()
+            case Mutation.DELETE_EXPRESSION:
+                self.delete_expression()
+            case Mutation.FUNCTION_CALL:
+                self.function_call()
+            case Mutation.IF_STATEMENT:
+                self.if_statement()
+            case Mutation.SWAP_ARGUMENTS_FUNCTION:
+                self.swap_arguments_function()
+            case Mutation.SWAP_ARGUMENTS_OPERATOR:
+                self.swap_arguments_operator()
+            case Mutation.SWAP_LINES:
+                self.swap_lines()
+            case Mutation.ELIM_DELEGATE:
+                self.elim_delegate()
+        return self.contents
+    
+    def get_contents(self) -> str:
+        contents = ""
+        for line in self.contents:
+            contents = contents + line + '\n'
+        return contents
     
     def binary_op(self):
         line_to_change = self.contents[self.line] # because array stats at one it should implicitly grab the line below the comment
         if '+' in line_to_change:
-            line_to_change.replace('+', '-')
+            line_to_change =line_to_change.replace('+', '-')
         elif '-' in line_to_change:
-            line_to_change.replace('-', '+')
+            line_to_change = line_to_change.replace('-', '+')
         elif '*' in line_to_change:
-            line_to_change.replace('*', '/')
+            line_to_change = line_to_change.replace('*', '/')
         elif '/' in line_to_change:
-            line_to_change.replace('/', '*')
+            line_to_change = line_to_change.replace('/', '*')
         elif '%' in line_to_change:
-            line_to_change.replace('%', '/')
+            line_to_change = line_to_change.replace('%', '/')
         else:
             raise Exception("Binary_op mutation failed on line {}", self.line+1)
+        self.contents[self.line] = line_to_change
 
     def unary_op(self):
         pass
@@ -71,23 +104,26 @@ class Mutator():
         pass
 
 class Contract:
-    def __init__(self, path, contents, mutations):
+    def __init__(self, path, contents, mutations, name):
         self.path = path
         self.contents = contents
         self.mutations = mutations
+        self.name = name
+    
 
 class Project:
     def load_contract(self, contract_path) -> Contract:
         contract_contents = open(contract_path, "r").read()
         contract_lines = open(contract_path, "r").readlines()
+        name = contract_path.split("/")[-1]
         mutations = []
 
         for count, line in enumerate(contract_lines):
-            if line.startswith("# @Jade:"):
-                mutation = line.split(":")[1].strip()
+            if line.strip().startswith("# @Jade:"):
+                mutation = line.split(":")[-1].strip()
                 match mutation:
                     case "BINARY_OP":
-                        mutations.append((Mutation.BINARY_OP, count))
+                        mutations.append((Mutation.BINARY_OP, count+1))
                     case "UNARY_OP":
                         mutations.append((Mutation.UNARY_OP, count))
                     case "REQUIRE":
@@ -109,22 +145,24 @@ class Project:
                     case "ELIM_DELEGATE":
                         mutations.append((Mutation.ELIM_DELEGATE, count))
 
-        contract = Contract(contract_path, contract_contents)
+        contract = Contract(contract_path, contract_contents, mutations, name)
         return contract
 
-    def load_project(self, dir_path):
+    def load_project(self):
+        dir_path = self.dir_path
         colorama_init(autoreset=True)
 
         contracts = []
         for path in os.listdir(dir_path):
             if path.endswith(".vy"):
-                self.load_contract(dir_path, path)
+                contracts.append(self.load_contract(dir_path + '/' + path))
                 print(f"Loaded Contract from {Fore.MAGENTA}{path}{Style.RESET_ALL}")
 
         self.contracts = contracts
 
     def __init__(self, dir_path, test_cmd):
-        self.load_project(dir_path)
+        self.dir_path = dir_path
+        self.load_project()
         self.test_cmd = test_cmd
 
     def run_tests(self):
@@ -136,6 +174,27 @@ class Project:
             for mutation in contract.mutations:
                 (mutation_type, line) = mutation
                 print(f"Running mutation {Fore.GREEN}{mutation_type}{Style.RESET_ALL} on line {Fore.GREEN}{line}{Style.RESET_ALL}")
-                contract_lines = open(contract, "r").readlines()
+                contract_lines = open(contract.path, "r").readlines()
                 mutator = Mutator(mutation_type, line, contract_lines)
-            subprocess.run(self.test_cmd)
+                mutator.mutate()
+                f = open(contract.path, "r+")
+                mutated_contents = mutator.get_contents()
+                f.truncate(0)
+                f.write(mutated_contents)
+                f.close()
+
+                FNULL = open(os.devnull, 'w')
+                retcode = subprocess.call(self.test_cmd, 
+                    stdout=FNULL, 
+                    stderr=FNULL)
+                
+                if retcode == 0:
+                    print("Test should have failed but passed")
+                elif retcode > 0:
+                    print("Test failed as expected")
+
+                f = open(contract.path, "r+")
+                f.truncate(0)
+                f.write(contract.contents)
+                f.close()
+
