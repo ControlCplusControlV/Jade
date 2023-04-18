@@ -60,7 +60,7 @@ class Mutator():
     def binary_op(self):
         line_to_change = self.contents[self.line] # because array stats at one it should implicitly grab the line below the comment
         if '+' in line_to_change:
-            line_to_change =line_to_change.replace('+', '-')
+            line_to_change = line_to_change.replace('+', '-')
         elif '-' in line_to_change:
             line_to_change = line_to_change.replace('-', '+')
         elif '*' in line_to_change:
@@ -74,13 +74,26 @@ class Mutator():
         self.contents[self.line] = line_to_change
 
     def unary_op(self):
-        pass
+        line_to_change = self.contents[self.line]
+        if '++' in line_to_change:
+            line_to_change = line_to_change.replace('++', '--')
+        elif '--' in line_to_change:
+            line_to_change = line_to_change.replace('--', '++')
+        else:
+            raise Exception("Unary_op mutation failed on line {}", self.line+1)
+        self.contents[self.line] = line_to_change
 
+    # OK Ok It's technically an Assert mutate but named it require for now
     def require(self):
-        pass    
+        line_to_change = self.contents[self.line]
+        if 'assert' in line_to_change:
+            line_to_change = line_to_change.replace('assert', 'assert !')
+        else:
+            raise Exception("Assert mutation failed on line {}", self.line+1)
+        self.contents[self.line] = line_to_change
 
     def assignment(self):
-        pass    
+        pass
 
     def delete_expression(self):
         pass
@@ -89,16 +102,25 @@ class Mutator():
         pass
 
     def if_statement(self):
-        pass
+        line_to_change = self.contents[self.line]
+        if 'if' in line_to_change:
+            line_to_change = line_to_change.replace('if', 'if !')
+        else:
+            raise Exception("If statement mutation failed on line {}", self.line+1)
+        self.contents[self.line] = line_to_change
 
     def swap_arguments_function(self):
+        line_to_change = self.contents[self.line]
         pass
 
     def swap_arguments_operator(self):
         pass
 
     def swap_lines(self):
-        pass
+        line_to_change = self.contents[self.line]
+        line_to_change2 = self.contents[self.line+1]
+        self.contents[self.line] = line_to_change2
+        self.contents[self.line+1] = line_to_change
 
     def elim_delegate(self):
         pass
@@ -167,16 +189,16 @@ class Project:
 
     def run_tests(self):
         for contract in self.contracts:
-            print(f"Running tests for {Fore.MAGENTA}{contract.path}{Style.RESET_ALL}")
+            print(f"Running tests for {Fore.MAGENTA}{contract.path.split('/')[-1]}{Style.RESET_ALL}")
             if len(contract.mutations) == 0:
-                print(f"{Fore.RED}No mutations found for {contract.path}{Style.RESET_ALL}")
+                print(f"{Fore.RED}No mutations found for {contract.path.split('/')[-1]}{Style.RESET_ALL}")
                 continue
             for mutation in contract.mutations:
                 (mutation_type, line) = mutation
-                print(f"Running mutation {Fore.GREEN}{mutation_type}{Style.RESET_ALL} on line {Fore.GREEN}{line}{Style.RESET_ALL}")
+                print(f"Running mutation {Fore.GREEN}{mutation_type}{Style.RESET_ALL} on line {Fore.GREEN}{line+1}{Style.RESET_ALL}")
                 contract_lines = open(contract.path, "r").readlines()
                 mutator = Mutator(mutation_type, line, contract_lines)
-                mutator.mutate()
+                #mutator.mutate()
                 f = open(contract.path, "r+")
                 mutated_contents = mutator.get_contents()
                 f.truncate(0)
@@ -188,10 +210,9 @@ class Project:
                     stdout=FNULL, 
                     stderr=FNULL)
                 
-                if retcode == 0:
-                    print("Test should have failed but passed")
-                elif retcode > 0:
-                    print("Test failed as expected")
+                success = retcode > 0
+
+                print(f"Mutation Test {mutation_type} on line {line+1} {Fore.GREEN}{'passed ✅' if success else 'failed ❌'}{Style.RESET_ALL}")
 
                 f = open(contract.path, "r+")
                 f.truncate(0)

@@ -31,13 +31,13 @@ above an affectable statement
 
 Supported 
 - [x] - BINARY_OP
-- [ ] - UNARY_OP
-- [ ] - REQUIRE
+- [x] - UNARY_OP
+- [x] - REQUIRE (Assert in this case)
 - [ ] - ASSIGNMENT
 - [ ] - DELETE_EXPRESSION
 - [ ] - FUNCTION_CALL
-- [ ] - IF_STATEMENT
+- [x] - IF_STATEMENT
 - [ ] - SWAP_ARGUMENTS_FUNCTION
 - [ ] - SWAP_ARGUMENTS_OPERATOR
-- [ ] - SWAP_LINES
+- [x] - SWAP_LINES
 - [ ] - ELIM_DELEGATE
