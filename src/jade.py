@@ -114,11 +114,25 @@ class Mutator():
         halves = line_to_change.split('(')
         first_half = halves[0]
         second_half = halves[1]
-        args = second_half.split(')')[0]
-        pass
+        self.contents[self.line] = first_half + second_half.split(')')[0].reverse() + second_half.split(')')[1]
 
     def swap_arguments_operator(self):
-        pass
+        # if its a - b
+        # then it should be b - a
+        line_to_change = self.contents[self.line]
+        if '+' in line_to_change:
+            line_to_change = line_to_change.split('+').reverse()
+        elif '-' in line_to_change:
+            line_to_change = line_to_change.split('-').reverse()
+        elif '*' in line_to_change:
+            line_to_change = line_to_change.split('*').reverse()
+        elif '/' in line_to_change:
+            line_to_change = line_to_change.split('/').reverse()
+        elif '%' in line_to_change:
+            line_to_change = line_to_change.split('%').reverse()
+        else:
+            raise Exception("Swap arguments operator mutation failed on line {}", self.line+1)
+        self.contents[self.line] = line_to_change
 
     def swap_lines(self):
         line_to_change = self.contents[self.line]
