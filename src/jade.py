@@ -111,6 +111,10 @@ class Mutator():
 
     def swap_arguments_function(self):
         line_to_change = self.contents[self.line]
+        halves = line_to_change.split('(')
+        first_half = halves[0]
+        second_half = halves[1]
+        args = second_half.split(')')[0]
         pass
 
     def swap_arguments_operator(self):
@@ -198,7 +202,7 @@ class Project:
                 print(f"Running mutation {Fore.GREEN}{mutation_type}{Style.RESET_ALL} on line {Fore.GREEN}{line+1}{Style.RESET_ALL}")
                 contract_lines = open(contract.path, "r").readlines()
                 mutator = Mutator(mutation_type, line, contract_lines)
-                #mutator.mutate()
+                mutator.mutate()
                 f = open(contract.path, "r+")
                 mutated_contents = mutator.get_contents()
                 f.truncate(0)
