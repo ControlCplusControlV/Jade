@@ -86,8 +86,10 @@ class Mutator():
     # OK Ok It's technically an Assert mutate but named it require for now
     def require(self):
         line_to_change = self.contents[self.line]
-        if 'assert' in line_to_change:
-            line_to_change = line_to_change.replace('assert', 'assert !')
+        if 'assert not' in line_to_change:
+            line_to_change = line_to_change.replace('assert not', 'assert')
+        elif 'assert' in line_to_change:
+            line_to_change = line_to_change.replace('assert', 'assert not')
         else:
             raise Exception("Assert mutation failed on line {}", self.line+1)
         self.contents[self.line] = line_to_change
@@ -103,8 +105,10 @@ class Mutator():
 
     def if_statement(self):
         line_to_change = self.contents[self.line]
-        if 'if' in line_to_change:
-            line_to_change = line_to_change.replace('if', 'if !')
+        if 'if not' in line_to_change:
+            line_to_change = line_to_change.replace('if not', 'if')
+        elif 'if' in line_to_change:
+            line_to_change = line_to_change.replace('if', 'if not')
         else:
             raise Exception("If statement mutation failed on line {}", self.line+1)
         self.contents[self.line] = line_to_change
